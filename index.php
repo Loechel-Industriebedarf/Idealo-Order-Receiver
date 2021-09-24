@@ -3,6 +3,7 @@
 	
 	require_once "config.php";
 	
+	//Debug Stuff.
 	echo "<h1>USERDATA</h1>";
 	echo "<pre>";
 	echo "Sandbox? "; var_dump($sandbox);
@@ -20,12 +21,14 @@
 		var_dump($accessToken);
 		echo "</pre>";
 		
+		
 		$orders = getNonAcknowledgedOrders($url, $shopid, $accessToken);
 		
 		echo "<h1>AcknowledgedOrders</h1>";
 		echo "<pre>";
 		var_dump($orders);
 		echo "</pre>";
+		
 		
 		$orderNumbers = extractOrderNumbers($orders);
 		
@@ -34,12 +37,14 @@
 		var_dump($orderNumbers);
 		echo "</pre>";
 		
+		
 		$result = setMerchantOrderNumbers($orderNumbers, $url, $shopid, $accessToken);
 		
 		echo "<h1>Result</h1>";
 		echo "<pre>";
 		var_dump($result);
 		echo "</pre>";
+		
 		
 		//TODO check result; If result == good => write to csv
 		echo "<h1>CSV</h1>";
@@ -54,6 +59,11 @@
 	
 	/*
 	* Get Token
+	*
+	* @param string url				Sandbox or "real" api url
+	* @param string username		API username
+	* @param string password		API secret
+	* @return string				Returns the access token as string
 	*/
 	function getAccessToken($url, $username, $password){
 		$ch = curl_init($url . "/api/v2/oauth/token");
@@ -72,6 +82,11 @@
 	
 	/*
 	* Get orders
+	*
+	* @param string url				Sandbox or "real" api url
+	* @param int shopid				Id of the idealo shop
+	* @param string accessToken		Access token generated via getAccessToken()
+	* @return array					Returns an array with all non acknowleded orders
 	*/
 	
 	function getNonAcknowledgedOrders($url, $shopid, $accessToken){
@@ -104,15 +119,25 @@
 	
 	/*
 	* Extract order numbers from array
+	*
+	* @param array orders			Array with multiple orders (generated via getNonAcknowledgedOrders() for example)
+	* @return array[string]			Returns an array with just the order numbers (without additional info)
 	*/
 	function extractOrderNumbers($orders){
-		return [12345, 67890];
+		return ["12345", "67890"];
 	}
 	
 	
 	
 	/*
 	* Set Merchant Order Number
+	*
+	* @param array idealoOrderIds	List of order ids, the merchant number should be set for
+	* @param string idealoOrderId	One single order id, the merchant number should be set for
+	* @param string url				Sandbox or "real" api url
+	* @param int shopid				Id of the idealo shop
+	* @param string accessToken		Access token generated via getAccessToken()
+	* @return array					Returns an array, that tells, if the api call was successfull
 	*/
 	//Set multiple numbers
 	function setMerchantOrderNumbers($idealoOrderIds, $url, $shopid, $accessToken){
@@ -141,6 +166,8 @@
 	
 	/*
 	* Write orders to csv
+	*
+	* @param array orders			All orders (including order information) that should be written to csv
 	*/
 	function writeOrdersToCsv($orders){		
 		//TODO: Do something useful
