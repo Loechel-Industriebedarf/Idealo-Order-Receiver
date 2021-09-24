@@ -1,6 +1,5 @@
 <?php
-
-	
+	//Load configuration file
 	require_once "config.php";
 	
 	//Debug Stuff.
@@ -16,6 +15,7 @@
 	if(!file_exists($csvPath)){
 		$accessToken = getAccessToken($url, $username, $password);
 	
+		//Debug Stuff.
 		echo "<h1>Access Token</h1>";
 		echo "<pre>";
 		var_dump($accessToken);
@@ -24,31 +24,41 @@
 		
 		$orders = getNonAcknowledgedOrders($url, $shopid, $accessToken);
 		
+		//Debug Stuff.
 		echo "<h1>AcknowledgedOrders</h1>";
 		echo "<pre>";
 		var_dump($orders);
 		echo "</pre>";
 		
+		//If there are new orders, do something with them
+		if($orders["totalElements"] > 0){
+			$orderNumbers = extractOrderNumbers($orders);
 		
-		$orderNumbers = extractOrderNumbers($orders);
-		
-		echo "<h1>Order Numbers</h1>";
-		echo "<pre>";
-		var_dump($orderNumbers);
-		echo "</pre>";
-		
-		
-		$result = setMerchantOrderNumbers($orderNumbers, $url, $shopid, $accessToken);
-		
-		echo "<h1>Result</h1>";
-		echo "<pre>";
-		var_dump($result);
-		echo "</pre>";
-		
-		
-		//TODO check result; If result == good => write to csv
-		echo "<h1>CSV</h1>";
-		writeOrdersToCsv($orders);
+			//Debug Stuff.
+			echo "<h1>Order Numbers</h1>";
+			echo "<pre>";
+			var_dump($orderNumbers);
+			echo "</pre>";
+			
+			
+			$result = setMerchantOrderNumbers($orderNumbers, $url, $shopid, $accessToken);
+			
+			//Debug Stuff.
+			echo "<h1>Result</h1>";
+			echo "<pre>";
+			var_dump($result);
+			echo "</pre>";
+			
+			//TODO check if check actually works
+			if($result !== null){				
+				echo "<h1>CSV</h1>";
+				writeOrdersToCsv($orders, $csvPath);
+			}
+			
+		}
+		else{
+			echo "No new orders!";
+		}
 	}
 	else{
 		echo "CSV file was not processed yet!";
@@ -60,7 +70,7 @@
 	/*
 	* Get Token
 	*
-	* @param string url				Sandbox or "real" api url
+	* @param string url				Sandbox or production api url
 	* @param string username		API username
 	* @param string password		API secret
 	* @return string				Returns the access token as string
@@ -83,7 +93,7 @@
 	/*
 	* Get orders
 	*
-	* @param string url				Sandbox or "real" api url
+	* @param string url				Sandbox or production api url
 	* @param int shopid				Id of the idealo shop
 	* @param string accessToken		Access token generated via getAccessToken()
 	* @return array					Returns an array with all non acknowleded orders
@@ -121,9 +131,10 @@
 	* Extract order numbers from array
 	*
 	* @param array orders			Array with multiple orders (generated via getNonAcknowledgedOrders() for example)
-	* @return array[string]			Returns an array with just the order numbers (without additional info)
+	* @return array[string]			Returns an array with just the idealo order numbers (without additional info)
 	*/
 	function extractOrderNumbers($orders){
+		//TODO: actually extract order numbers
 		return ["12345", "67890"];
 	}
 	
@@ -134,7 +145,7 @@
 	*
 	* @param array idealoOrderIds	List of order ids, the merchant number should be set for
 	* @param string idealoOrderId	One single order id, the merchant number should be set for
-	* @param string url				Sandbox or "real" api url
+	* @param string url				Sandbox or production api url
 	* @param int shopid				Id of the idealo shop
 	* @param string accessToken		Access token generated via getAccessToken()
 	* @return array					Returns an array, that tells, if the api call was successfull
@@ -168,9 +179,68 @@
 	* Write orders to csv
 	*
 	* @param array orders			All orders (including order information) that should be written to csv
+	* @param string csvpath			Where should the csv be saved?
 	*/
-	function writeOrdersToCsv($orders){		
-		//TODO: Do something useful
+	function writeOrdersToCsv($orders, $csvPath){		
+		//TODO: Actually read the order information and generate a csv from it
+		$csv = "";
 		
-		echo "csv function";
+		//TODO check if this is correct?
+		foreach($orders["content"] as $orderContent){
+			foreach($orders["content"]["lineitems"] as $lineItem){
+				$csv = $csv . $orderContent["idealoOrderId"]; //OrderNumber
+				$csv = $csv . $orderContent["created"]; //OrderDate
+				$csv = $csv . $orderContent["customer"]["email"]; //EMail
+				$csv = $csv . $lineItem["sku"]; //ArticleNumber
+				$csv = $csv . $lineItem["price"]; //ArticlePrice
+				$csv = $csv . $orderContent["shippingAddress"]["firstName"] . " " . $orderContent["shippingAddress"]["lastName"]; //DeliveryClient
+				$csv = $csv . $orderContent["shippingAddress"]["addressLine1"]; //DeliveryStreet
+				$csv = $csv . $orderContent["shippingAddress"]["addressLine2"]; //DeliveryClient2
+				$csv = $csv . $orderContent["shippingAddress"]["postalCode"]; //DeliveryZIP
+				$csv = $csv . $orderContent["shippingAddress"]["city"]; //DeliveryCity
+				$csv = $csv . $orderContent["shippingAddress"]["countryCode"]; //DeliveryCountry
+				$csv = $csv . $orderContent["billingAddress"]["firstName"] . " " . $orderContent["billingAddress"]["lastName"]; //InvoiceClient
+				$csv = $csv . $orderContent["billingAddress"]["addressLine1"]; //InvoiceStreet
+				$csv = $csv . $orderContent["billingAddress"]["addressLine2"]; //InvoiceClient2
+				$csv = $csv . $orderContent["billingAddress"]["postalCode"]; //InvoiceZIP
+				$csv = $csv . $orderContent["billingAddress"]["city"]; //InvoiceCity
+				$csv = $csv . $orderContent["billingAddress"]["countryCode"]; //InvoiceCountry
+				$csv = $csv . $orderContent["customer"]["phone"]; //Phone
+				$csv = $csv . $orderContent["payment"]["paymentMethod"]; //PaymentMethod
+				$csv = $csv . $orderContent["payment"]["transactionId"]; //TransactionId
+				$csv = $csv . $orderContent["shippingCosts"]; //TransactionId
+			}
+		}
+		
+		echo $csv;
+    
+		if($csv !== ""){
+			//Add headline
+			$csv = generateCSVHeadline().$csv;
+			//Write to file
+			$fp = fopen($csvPath, 'w');
+			fwrite($fp, $csv);
+			fclose($fp);
+		}	
+	}
+	
+	
+	
+	/*
+	* Generate csv headline
+	*
+	* @return string 				Headline for the csv file (including line break)
+	*/
+	function generateCSVHeadline(){
+		$csv_headline = ""
+            . "OrderNumber;OrderDate;EMail;"
+            . "ArticleNumber;ArticleQuantity;ArticlePrice;"
+            . "DeliveryClient;DeliveryStreet;DeliveryClient2;"
+            . "DeliveryZIP;DeliveryCity;DeliveryCountry;"
+            . "InvoiceClient;InvoiceStreet;InvoiceClient2;"
+            . "InvoiceZIP;InvoiceCity;InvoiceCountry;"
+            . "Phone;PaymentType;TransactionId;"
+			. "Shipping" 
+			. "\r\n";
+		return $csv_headline;
 	}
