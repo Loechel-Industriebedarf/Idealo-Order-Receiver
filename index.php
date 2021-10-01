@@ -3,6 +3,7 @@
 	require_once "config.php";
 	
 	//Debug Stuff.
+	/*
 	echo "<h1>USERDATA</h1>";
 	echo "<pre>";
 	echo "Sandbox? "; var_dump($sandbox);
@@ -10,50 +11,61 @@
 	echo "Password "; var_dump($password);
 	echo "Shopid "; var_dump($shopid);
 	echo "</pre>";
+	*/
 	
 	//Check, if csv already exists. If there is already an csv, we don't need to do anything yet
 	if(!file_exists($csvPath)){
 		$accessToken = getAccessToken($url, $username, $password);
 	
 		//Debug Stuff.
+		/*
 		echo "<h1>Access Token</h1>";
 		echo "<pre>";
 		var_dump($accessToken);
 		echo "</pre>";
+		*/
 		
 		
 		$orders = getNonAcknowledgedOrders($url, $shopid, $accessToken);
 		
 		//Debug Stuff.
-		echo "<h1>AcknowledgedOrders</h1>";
+		/*
+		echo "<h1>NonAcknowledgedOrders</h1>";
 		echo "<pre>";
 		var_dump($orders);
 		echo "</pre>";
+		*/
 		
 		//If there are new orders, do something with them
 		if($orders["totalElements"] > 0){
 			$orderNumbers = extractOrderNumbers($orders);
 		
 			//Debug Stuff.
+			/*
 			echo "<h1>Order Numbers</h1>";
 			echo "<pre>";
 			var_dump($orderNumbers);
 			echo "</pre>";
+			*/
+			
 			
 			
 			$result = setMerchantOrderNumbers($orderNumbers, $url, $shopid, $accessToken);
+
 			
 			//Debug Stuff.
-			echo "<h1>Result</h1>";
+			/*
+			echo "<h1>Result of setMerchantOrderNumbers</h1>";
 			echo "<pre>";
 			var_dump($result);
 			echo "</pre>";
+			*/
 			
-			//TODO check if check actually works
-			if($result !== null){				
-				echo "<h1>CSV</h1>";
+			//$result seems to always be null...
+			//if($result !== null){				
+				//echo "<h1>CSV</h1>";
 				writeOrdersToCsv($orders, $csvPath);
-			}
+			//}
 			
 		}
 		else{
@@ -114,11 +126,6 @@
 	   ));
 		$result = curl_exec($ch);
 		
-		$json_decode = json_decode($result, true);
-		echo "<h1>AcknowledgedOrders JSON DECODE DUMP</h1><pre>";
-		var_dump($json_decode);
-		echo "</pre>";
-		
 		curl_close($ch);
 		
 		
@@ -134,8 +141,11 @@
 	* @return array[string]			Returns an array with just the idealo order numbers (without additional info)
 	*/
 	function extractOrderNumbers($orders){
-		//TODO: actually extract order numbers
-		return ["12345", "67890"];
+		$orderNumbers = array();
+		foreach($orders["content"] as $orderContent){			
+			array_push($orderNumbers, $orderContent["idealoOrderId"]);
+		}
+		return $orderNumbers;
 	}
 	
 	
@@ -153,22 +163,31 @@
 	//Set multiple numbers
 	function setMerchantOrderNumbers($idealoOrderIds, $url, $shopid, $accessToken){
 		foreach ($idealoOrderIds as &$value) {
-			setMerchantOrderNumber($value, $url, $shopid, $accessToken);
-		}		
+			echo setMerchantOrderNumber($value, $url, $shopid, $accessToken);
+		}	
 	}
 	//Set one number at a time
 	function setMerchantOrderNumber($idealoOrderId, $url, $shopid, $accessToken){
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url . "/api/v2/shops/ " . $shopid . "/orders/" . $idealoOrderId . "/merchant-order-number");
+		$payload = json_encode( array( "merchantOrderNumber"=> $idealoOrderId ) );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, $payload );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+		curl_setopt($ch, CURLOPT_URL, $url . "/api/v2/shops/" . $shopid . "/orders/" . $idealoOrderId . "/merchant-order-number");
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 		   'Content-Type: application/json',
 		   'Authorization: Bearer ' . $accessToken
 		));
-	   
+		
 	   
 		$result = curl_exec ($ch);
+		//Debug stuff
+		/*
+		echo "<pre>";
+		var_dump($result);
+		echo "</pre>";
+		*/
 		
 		return json_decode($result, true);
 	}	
@@ -182,38 +201,52 @@
 	* @param string csvpath			Where should the csv be saved?
 	*/
 	function writeOrdersToCsv($orders, $csvPath){		
-		//TODO: Actually read the order information and generate a csv from it
 		$csv = "";
 		
-		//TODO check if this is correct?
+		//Cycle throught all orders
 		foreach($orders["content"] as $orderContent){
-			foreach($orders["content"]["lineitems"] as $lineItem){
-				$csv = $csv . $orderContent["idealoOrderId"]; //OrderNumber
-				$csv = $csv . $orderContent["created"]; //OrderDate
-				$csv = $csv . $orderContent["customer"]["email"]; //EMail
-				$csv = $csv . $lineItem["sku"]; //ArticleNumber
-				$csv = $csv . $lineItem["price"]; //ArticlePrice
-				$csv = $csv . $orderContent["shippingAddress"]["firstName"] . " " . $orderContent["shippingAddress"]["lastName"]; //DeliveryClient
-				$csv = $csv . $orderContent["shippingAddress"]["addressLine1"]; //DeliveryStreet
-				$csv = $csv . $orderContent["shippingAddress"]["addressLine2"]; //DeliveryClient2
-				$csv = $csv . $orderContent["shippingAddress"]["postalCode"]; //DeliveryZIP
-				$csv = $csv . $orderContent["shippingAddress"]["city"]; //DeliveryCity
-				$csv = $csv . $orderContent["shippingAddress"]["countryCode"]; //DeliveryCountry
-				$csv = $csv . $orderContent["billingAddress"]["firstName"] . " " . $orderContent["billingAddress"]["lastName"]; //InvoiceClient
-				$csv = $csv . $orderContent["billingAddress"]["addressLine1"]; //InvoiceStreet
-				$csv = $csv . $orderContent["billingAddress"]["addressLine2"]; //InvoiceClient2
-				$csv = $csv . $orderContent["billingAddress"]["postalCode"]; //InvoiceZIP
-				$csv = $csv . $orderContent["billingAddress"]["city"]; //InvoiceCity
-				$csv = $csv . $orderContent["billingAddress"]["countryCode"]; //InvoiceCountry
-				$csv = $csv . $orderContent["customer"]["phone"]; //Phone
-				$csv = $csv . $orderContent["payment"]["paymentMethod"]; //PaymentMethod
-				$csv = $csv . $orderContent["payment"]["transactionId"]; //TransactionId
-				$csv = $csv . $orderContent["shippingCosts"]; //TransactionId
+			//Debug stuff
+			/*
+			echo "<pre>";
+			echo var_dump($orderContent);
+			echo "</pre>";
+			*/
+			
+			error_reporting(0);
+			
+			//Cycle throught items in the order
+			foreach($orderContent["lineItems"] as $lineItem){	
+				$csv = $csv . $orderContent["idealoOrderId"] . ";"; //OrderNumber
+				$csv = $csv . $orderContent["created"] . ";"; //OrderDate
+				$csv = $csv . $orderContent["customer"]["email"] . ";"; //EMail
+				$csv = $csv . $lineItem["sku"] . ";"; //ArticleNumber
+				$csv = $csv . $lineItem["quantity"] . ";"; //ArticleNumber
+				$csv = $csv . $lineItem["price"] . ";"; //ArticlePrice
+				$csv = $csv . $orderContent["shippingAddress"]["firstName"] . " " . $orderContent["shippingAddress"]["lastName"] . ";"; //DeliveryClient
+				$csv = $csv . $orderContent["shippingAddress"]["addressLine1"] . ";"; //DeliveryStreet
+				$csv = $csv . $orderContent["shippingAddress"]["addressLine2"] . ";"; //DeliveryClient2
+				$csv = $csv . $orderContent["shippingAddress"]["postalCode"] . ";"; //DeliveryZIP
+				$csv = $csv . $orderContent["shippingAddress"]["city"] . ";"; //DeliveryCity
+				$csv = $csv . $orderContent["shippingAddress"]["countryCode"] . ";"; //DeliveryCountry
+				$csv = $csv . $orderContent["billingAddress"]["firstName"] . " " . $orderContent["billingAddress"]["lastName"] . ";"; //InvoiceClient
+				$csv = $csv . $orderContent["billingAddress"]["addressLine1"] . ";"; //InvoiceStreet
+				$csv = $csv . $orderContent["billingAddress"]["addressLine2"] . ";"; //InvoiceClient2
+				$csv = $csv . $orderContent["billingAddress"]["postalCode"] . ";"; //InvoiceZIP
+				$csv = $csv . $orderContent["billingAddress"]["city"] . ";"; //InvoiceCity
+				$csv = $csv . $orderContent["billingAddress"]["countryCode"] . ";"; //InvoiceCountry
+				$csv = $csv . $orderContent["customer"]["phone"] . ";"; //Phone
+				$csv = $csv . $orderContent["payment"]["paymentMethod"] . ";"; //PaymentMethod
+				$csv = $csv . $orderContent["payment"]["transactionId"] . ";"; //TransactionId
+				$csv = $csv . $orderContent["shippingCosts"] . ";"; //TransactionId
+				$csv = $csv . "\r\n";
 			}
+			error_reporting(-1);
 		}
 		
+		//Debug purposes
 		echo $csv;
     
+		//Check, if we actually got a result
 		if($csv !== ""){
 			//Add headline
 			$csv = generateCSVHeadline().$csv;

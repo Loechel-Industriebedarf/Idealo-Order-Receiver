@@ -7,6 +7,8 @@
 	
 	$url = "https://orders.idealo.com";
 	if($sandbox){
+		$username = "d690802c-2a09-4db6-8bfd-2038f476aca4";
+		$password = "passsandbox";
 		$url = "https://orders-sandbox.idealo.com";
 	}
 	
