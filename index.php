@@ -50,7 +50,7 @@
 			
 			
 			
-			$result = setMerchantOrderNumbers($orderNumbers, $url, $shopid, $accessToken);
+			//$result = setMerchantOrderNumbers($orderNumbers, $url, $shopid, $accessToken);
 
 			
 			//Debug Stuff.
@@ -238,6 +238,7 @@
 				$csv = $csv . $orderContent["payment"]["paymentMethod"] . ";"; //PaymentMethod
 				$csv = $csv . $orderContent["payment"]["transactionId"] . ";"; //TransactionId
 				$csv = $csv . $orderContent["shippingCosts"] . ";"; //TransactionId
+				$csv = $csv . floatval($orderContent["grossPrice"])*0.09 . ";"; //9% Fees
 				$csv = $csv . "\r\n";
 			}
 			error_reporting(-1);
@@ -273,7 +274,7 @@
             . "InvoiceClient;InvoiceStreet;InvoiceClient2;"
             . "InvoiceZIP;InvoiceCity;InvoiceCountry;"
             . "Phone;PaymentType;TransactionId;"
-			. "Shipping" 
+			. "Shipping;Fees" 
 			. "\r\n";
 		return $csv_headline;
 	}
