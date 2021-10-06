@@ -238,7 +238,7 @@
 				$csv = $csv . $orderContent["payment"]["paymentMethod"] . ";"; //PaymentMethod
 				$csv = $csv . $orderContent["payment"]["transactionId"] . ";"; //TransactionId
 				$csv = $csv . $orderContent["shippingCosts"] . ";"; //TransactionId
-				$csv = $csv . floatval($orderContent["grossPrice"])*0.09 . ";"; //9% Fees
+				$csv = $csv . floatval($lineItem["price"])*0.09 . ";"; //9% Fees
 				$csv = $csv . "\r\n";
 			}
 			error_reporting(-1);
