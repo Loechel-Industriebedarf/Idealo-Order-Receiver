@@ -206,22 +206,37 @@
 		//Cycle throught all orders
 		foreach($orders["content"] as $orderContent){
 			//Debug stuff
-			/*
+			
 			echo "<pre>";
 			echo var_dump($orderContent);
 			echo "</pre>";
-			*/
+			
 			
 			error_reporting(0);
 			
 			//Cycle throught items in the order
 			foreach($orderContent["lineItems"] as $lineItem){	
+				$quantity = $lineItem["quantity"];
+				$price = $lineItem["price"];
+				$fees = floatval($lineItem["price"])/floatval($lineItem["quantity"])*0.09;
+			
+				if(strpos(strtolower($lineItem["title"]), 'er pack')){
+					$strpostitle = substr($title,0,strpos(strtolower($title),"er pack")); //Cut everything after "er Pack"
+					$lastspace = strrpos($strpostitle, ' '); //Search for last space
+					if($lastspace > 0){
+						$strpostitle = substr($strpostitle, $lastspace, strlen($strpostitle)); //Cut everything before last space
+					}	
+					$quantity *= intval($strpostitle); //Get "real" quantity
+					$price = doubleval($price) / doubleval($strpostitle); //Get "real" price
+					$fees = $fees / doubleval($strpostitle) + 0.01; //Get "real" fees
+				}
+			
 				$csv = $csv . $orderContent["idealoOrderId"] . ";"; //OrderNumber
 				$csv = $csv . $orderContent["created"] . ";"; //OrderDate
 				$csv = $csv . $orderContent["customer"]["email"] . ";"; //EMail
 				$csv = $csv . $lineItem["sku"] . ";"; //ArticleNumber
-				$csv = $csv . $lineItem["quantity"] . ";"; //ArticleNumber
-				$csv = $csv . $lineItem["price"] . ";"; //ArticlePrice
+				$csv = $csv . $quantity . ";"; //ArticleNumber
+				$csv = $csv . $price . ";"; //ArticlePrice
 				$csv = $csv . $orderContent["shippingAddress"]["firstName"] . " " . $orderContent["shippingAddress"]["lastName"] . ";"; //DeliveryClient
 				$csv = $csv . $orderContent["shippingAddress"]["addressLine1"] . ";"; //DeliveryStreet
 				$csv = $csv . $orderContent["shippingAddress"]["addressLine2"] . ";"; //DeliveryClient2
@@ -238,7 +253,7 @@
 				$csv = $csv . $orderContent["payment"]["paymentMethod"] . ";"; //PaymentMethod
 				$csv = $csv . $orderContent["payment"]["transactionId"] . ";"; //TransactionId
 				$csv = $csv . $orderContent["shippingCosts"] . ";"; //TransactionId
-				$csv = $csv . floatval($lineItem["price"])/floatval($lineItem["quantity"])*0.09 . ";"; //9% Fees
+				$csv = $csv . $fees . ";"; //9% Fees
 				$csv = $csv . "\r\n";
 			}
 			error_reporting(-1);
