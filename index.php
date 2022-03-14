@@ -219,8 +219,9 @@
 				$quantity = $lineItem["quantity"];
 				$price = $lineItem["price"];
 				$fees = floatval($lineItem["price"])/floatval($lineItem["quantity"])*0.09;
+				$title = strtolower($lineItem["title"]);
 			
-				if(strpos(strtolower($lineItem["title"]), 'er pack')){
+				if(strpos($title, 'er pack')){
 					$strpostitle = substr($title,0,strpos(strtolower($title),"er pack")); //Cut everything after "er Pack"
 					$lastspace = strrpos($strpostitle, ' '); //Search for last space
 					if($lastspace > 0){
@@ -235,7 +236,7 @@
 				$csv = $csv . $orderContent["created"] . ";"; //OrderDate
 				$csv = $csv . $orderContent["customer"]["email"] . ";"; //EMail
 				$csv = $csv . $lineItem["sku"] . ";"; //ArticleNumber
-				$csv = $csv . $quantity . ";"; //ArticleNumber
+				$csv = $csv . $quantity . ";"; //Quantity
 				$csv = $csv . $price . ";"; //ArticlePrice
 				$csv = $csv . $orderContent["shippingAddress"]["firstName"] . " " . $orderContent["shippingAddress"]["lastName"] . ";"; //DeliveryClient
 				$csv = $csv . $orderContent["shippingAddress"]["addressLine1"] . ";"; //DeliveryStreet
@@ -254,6 +255,7 @@
 				$csv = $csv . $orderContent["payment"]["transactionId"] . ";"; //TransactionId
 				$csv = $csv . $orderContent["shippingCosts"] . ";"; //TransactionId
 				$csv = $csv . $fees . ";"; //9% Fees
+				$csv = $csv . $title . ";"; //Item name
 				$csv = $csv . "\r\n";
 			}
 			error_reporting(-1);
